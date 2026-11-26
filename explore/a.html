@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cabin: the self-driving car with no service area</title>
+<style>
+@font-face { font-family: "Archivo"; src: url(fonts/archivo-wdth.woff2) format("woff2"); font-weight: 100 900; font-stretch: 62% 125%; font-display: swap; }
+@font-face { font-family: "Martian Mono"; src: url(fonts/martian-wght.woff2) format("woff2"); font-weight: 100 800; font-display: swap; }
+:root {
+  color-scheme: dark;
+  --ground: oklch(18% 0.028 235);
+  --ground-2: oklch(21% 0.03 235);
+  --land: oklch(58% 0.035 75);
+  --ink: oklch(95% 0.012 85);
+  --ink-2: oklch(78% 0.02 85);
+  --rule: oklch(34% 0.03 235);
+  --accent: oklch(83% 0.155 78);
+  --accent-ink: oklch(20% 0.03 70);
+  --font-display: "Archivo", "Arial", "Liberation Sans", sans-serif;
+  --font-mono: "Martian Mono", ui-monospace, Menlo, Consolas, "Liberation Mono", monospace;
+  --ease-out: cubic-bezier(.2,.8,.2,1);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--ground); color: var(--ink); font-family: var(--font-display); font-stretch: 100%; -webkit-font-smoothing: antialiased; }
+a { color: inherit; }
+.top { display: flex; align-items: center; justify-content: space-between; padding: 22px 40px; }
+.mark { font-stretch: 125%; font-weight: 800; font-size: 22px; letter-spacing: .06em; text-decoration: none; }
+.top nav { display: flex; gap: 32px; font-size: 15px; }
+.top nav a { text-decoration: none; color: var(--ink-2); }
+.top nav a:hover { color: var(--ink); }
+.hero { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 24px; padding: 24px 0 0 40px; min-height: calc(100svh - 72px); align-items: center; }
+.copy { max-width: 560px; padding-bottom: 40px; }
+h1 { font-stretch: 125%; font-weight: 750; font-size: clamp(2.1rem, 1rem + 3.2vw, 3.9rem); line-height: 1.02; letter-spacing: -0.02em; margin: 0 0 24px; text-wrap: balance; }
+.sub { font-size: 18px; line-height: 1.55; color: var(--ink-2); margin: 0 0 36px; max-width: 46ch; }
+.sub b { color: var(--ink); font-weight: 600; }
+.trip { border-top: 1px solid var(--rule); padding-top: 20px; }
+.trip-label { font-size: 14px; color: var(--ink-2); margin: 0 0 12px; }
+.dests { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 24px; padding: 0; list-style: none; }
+.dests button { font: inherit; font-size: 15px; color: var(--ink); background: transparent; border: 1px solid var(--rule); border-radius: 999px; padding: 8px 14px; cursor: pointer; transition: border-color .15s, background .15s; }
+.dests button:hover { border-color: var(--ink-2); }
+.dests button[aria-pressed="true"] { background: var(--ink); color: var(--ground); border-color: var(--ink); }
+.read { display: grid; grid-template-columns: repeat(3, auto); justify-content: start; gap: 8px 40px; margin: 0 0 28px; }
+.read dt { font-size: 13px; color: var(--ink-2); }
+.read dd { margin: 0; font-family: var(--font-mono); font-size: 22px; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.read dd small { font-size: 13px; color: var(--ink-2); font-weight: 400; letter-spacing: 0; }
+.book { display: inline-flex; align-items: center; gap: 12px; background: var(--accent); color: var(--accent-ink); font-weight: 650; font-size: 17px; padding: 16px 24px; border-radius: 4px; text-decoration: none; border: 1px solid transparent; }
+.book:hover { background: oklch(88% 0.14 82); }
+.map { position: relative; align-self: stretch; display: flex; align-items: center; }
+.map-inner { position: relative; width: 100%; aspect-ratio: 1000 / 620; }
+.map canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.pin { position: absolute; transform: translate(10px, -50%); font-family: var(--font-mono); font-size: 12px; color: var(--ink); white-space: nowrap; pointer-events: none; }
+.pin.dest { color: var(--accent); }
+.ife { position: absolute; left: 4%; bottom: 8%; display: flex; gap: 28px; font-family: var(--font-mono); font-size: 13px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.ife b { color: var(--ink); font-weight: 500; }
+@media (max-width: 900px) {
+  .top { padding: 16px 20px; }
+  .top nav { display: none; }
+  .hero { grid-template-columns: minmax(0, 1fr); padding: 0 20px; gap: 0; min-height: 0; }
+  .copy { display: contents; }
+  h1 { order: 1; font-size: 2.15rem; margin: 8px 0 18px; }
+  .map { order: 2; margin: 0 -20px 12px; }
+  .ife { position: static; padding: 6px 20px 0; gap: 16px; font-size: 12px; flex-wrap: wrap; }
+  .map { flex-direction: column; align-items: stretch; }
+  .trip { order: 3; padding-top: 16px; }
+  .dests { flex-wrap: nowrap; overflow-x: auto; margin: 0 -20px 18px; padding: 0 20px; scrollbar-width: none; }
+  .dests button { white-space: nowrap; }
+  .read { gap: 4px 24px; margin-bottom: 20px; }
+  .read dd { font-size: 18px; }
+  .book { width: 100%; justify-content: center; }
+  .sub { order: 4; margin-top: 28px; font-size: 17px; }
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <a class="mark" href="#">CABIN</a>
+  <nav aria-label="Main"><a href="#">How it rides</a><a href="#">The cabin</a><a href="#">Fares</a><a href="#">Safety</a></nav>
+</header>
+<main class="hero">
+  <div class="copy">
+    <h1>The self-driving car with no service area.</h1>
+    <p class="sub">Cabin drives you anywhere a road goes in the lower 48, at any hour. Lie flat, sleep through Indiana, wake up in Nashville. <b>39¢ a mile for the whole car.</b></p>
+    <section class="trip" aria-label="Price a trip">
+      <p class="trip-label">From Chicago to</p>
+      <ul class="dests" id="dests"></ul>
+      <dl class="read">
+        <div><dt>Distance</dt><dd id="r-mi">472 <small>mi</small></dd></div>
+        <div><dt>Door to door</dt><dd id="r-time">8 h 01 m</dd></div>
+        <div><dt>Fare, whole car</dt><dd id="r-fare">$184</dd></div>
+      </dl>
+      <a class="book" id="book" href="#">Book Chicago to Nashville</a>
+    </section>
+  </div>
+  <div class="map">
+    <div class="map-inner" id="mapbox">
+      <canvas id="map" aria-hidden="true"></canvas>
+    </div>
+    <p class="ife" id="ife" aria-live="off"><span>Left <b>10:40 p.m.</b></span><span id="ife-now">Now <b>near Indianapolis, 1:37 a.m.</b></span><span id="ife-go"><b>289 mi</b> to go</span></p>
+  </div>
+</main>
+<script>
+const TRIPS = {
+  nashville:   { name: "Nashville",     mi: 472,  via: ["chicago","indianapolis","louisville","nashville"] },
+  minneapolis: { name: "Minneapolis",   mi: 408,  via: ["chicago","milwaukee","madison","minneapolis"] },
+  detroit:     { name: "Detroit",       mi: 283,  via: ["chicago","gary","bentonharbor","detroit"] },
+  denver:      { name: "Denver",        mi: 1003, via: ["chicago","desmoines","omaha","denver"] },
+  newyork:     { name: "New York",      mi: 790,  via: ["chicago","gary","toledo","cleveland","newyork"] },
+  asheville:   { name: "Asheville",     mi: 645,  via: ["chicago","indianapolis","cincinnati","knoxville","asheville"] },
+  traverse:    { name: "Traverse City", mi: 319,  via: ["chicago","gary","bentonharbor","grandrapids","traverse"] },
+};
+const NAMES = { chicago:"Chicago", indianapolis:"Indianapolis", louisville:"Louisville", milwaukee:"Milwaukee", madison:"Madison", gary:"Gary", bentonharbor:"Benton Harbor", desmoines:"Des Moines", omaha:"Omaha", toledo:"Toledo", cleveland:"Cleveland", cincinnati:"Cincinnati", knoxville:"Knoxville", grandrapids:"Grand Rapids" };
+const RATE = 0.39, MPH = 62, CHARGE_EVERY = 300, CHARGE_MIN = 25;
+const minutes = (mi) => Math.round(mi / MPH * 60 + Math.floor(mi / CHARGE_EVERY) * CHARGE_MIN);
+const hm = (m) => `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")} m`;
+const clock = (m) => { const t = (22 * 60 + 40 + m) % 1440; let h = Math.floor(t / 60); const ap = h >= 12 ? "p.m." : "a.m."; h = h % 12 || 12; return `${h}:${String(t % 60).padStart(2, "0")} ${ap}`; };
+
+let current = "nashville", map, pts = [], route = [], carT = 0, start = performance.now();
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const $ = (id) => document.getElementById(id);
+
+function buildButtons() {
+  const ul = $("dests");
+  for (const [k, t] of Object.entries(TRIPS)) {
+    const li = document.createElement("li"), b = document.createElement("button");
+    b.type = "button"; b.textContent = t.name; b.setAttribute("aria-pressed", k === current);
+    b.onclick = () => select(k);
+    li.append(b); ul.append(li);
+  }
+}
+function select(k) {
+  current = k; const t = TRIPS[k], m = minutes(t.mi);
+  document.querySelectorAll("#dests button").forEach((b) => b.setAttribute("aria-pressed", b.textContent === t.name));
+  $("r-mi").innerHTML = `${t.mi.toLocaleString()} <small>mi</small>`;
+  $("r-time").textContent = hm(m);
+  $("r-fare").textContent = "$" + Math.round(t.mi * RATE);
+  $("book").textContent = `Book Chicago to ${t.name}`;
+  if (map) buildRoute();
+  start = performance.now();
+}
+
+function buildRoute() {
+  const t = TRIPS[current], line = t.via.map((c) => map.cities[c]);
+  const segs = []; let total = 0;
+  for (let i = 0; i < line.length - 1; i++) { const [a, b] = [line[i], line[i + 1]]; const len = Math.hypot(b[0] - a[0], b[1] - a[1]); segs.push({ a, b, len, at: total }); total += len; }
+  route = { segs, total, line };
+  for (const p of pts) {
+    let best = 1e9, bt = 0;
+    for (const s of segs) {
+      const dx = s.b[0] - s.a[0], dy = s.b[1] - s.a[1];
+      let u = ((p.x - s.a[0]) * dx + (p.y - s.a[1]) * dy) / (s.len * s.len); u = Math.max(0, Math.min(1, u));
+      const d = Math.hypot(p.x - (s.a[0] + u * dx), p.y - (s.a[1] + u * dy));
+      if (d < best) { best = d; bt = (s.at + u * s.len) / total; }
+    }
+    p.route = best < map.step * 0.75 ? bt : -1;
+  }
+  placePins();
+}
+function along(t) {
+  const d = t * route.total;
+  for (const s of route.segs) if (d <= s.at + s.len) { const u = (d - s.at) / s.len; return [s.a[0] + (s.b[0] - s.a[0]) * u, s.a[1] + (s.b[1] - s.a[1]) * u]; }
+  return route.line[route.line.length - 1];
+}
+function placePins() {
+  const box = $("mapbox"); box.querySelectorAll(".pin").forEach((n) => n.remove());
+  const t = TRIPS[current];
+  const add = (key, label, cls) => { const [x, y] = map.cities[key]; const s = document.createElement("span"); s.className = "pin " + cls; s.textContent = label; s.style.left = (x / map.w * 100) + "%"; s.style.top = (y / map.h * 100) + "%"; box.append(s); };
+  add("chicago", "Chicago", "origin"); add(current === "newyork" ? "newyork" : current, t.name, "dest");
+}
+
+const cv = $("map"), ctx = cv.getContext("2d");
+let W = 0, H = 0, S = 1, dpr = 1;
+function resize() {
+  const r = cv.getBoundingClientRect(); dpr = Math.min(devicePixelRatio || 1, 2);
+  W = r.width; H = r.height; cv.width = W * dpr; cv.height = H * dpr; S = W / map.w;
+}
+function draw(now) {
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  const dur = 10000, hold = 1800, cyc = (now - start) % (dur + hold);
+  carT = reduce ? 1 : Math.min(1, cyc / dur);
+  const e = carT;
+  const r0 = Math.max(1.1, map.step * S * 0.23);
+  ctx.fillStyle = "oklch(62% 0.035 75 / .6)";
+  ctx.beginPath();
+  for (const p of pts) if (p.route < 0) { ctx.moveTo(p.x * S + r0, p.y * S); ctx.arc(p.x * S, p.y * S, r0, 0, 7); }
+  ctx.fill();
+  for (const p of pts) if (p.route >= 0) {
+    const on = p.route <= e;
+    ctx.fillStyle = on ? "oklch(83% 0.155 78)" : "oklch(83% 0.155 78 / .28)";
+    ctx.beginPath(); ctx.arc(p.x * S, p.y * S, on ? r0 * 1.45 : r0 * 1.15, 0, 7); ctx.fill();
+  }
+  for (const k of Object.keys(TRIPS)) {
+    if (k === current) continue; const [x, y] = map.cities[k];
+    ctx.strokeStyle = "oklch(78% 0.02 85 / .7)"; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(x * S, y * S, r0 * 1.8, 0, 7); ctx.stroke();
+  }
+  const [ox, oy] = map.cities.chicago; ctx.fillStyle = "oklch(95% 0.012 85)"; ctx.beginPath(); ctx.arc(ox * S, oy * S, r0 * 2.2, 0, 7); ctx.fill();
+  const [cx, cy] = along(e);
+  ctx.fillStyle = "oklch(18% 0.028 235)"; ctx.beginPath(); ctx.arc(cx * S, cy * S, r0 * 4.2, 0, 7); ctx.fill();
+  ctx.fillStyle = "oklch(83% 0.155 78)"; ctx.beginPath(); ctx.arc(cx * S, cy * S, r0 * 2.8, 0, 7); ctx.fill();
+  ctx.strokeStyle = "oklch(83% 0.155 78 / .5)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(cx * S, cy * S, r0 * 6, 0, 7); ctx.stroke();
+  const t = TRIPS[current], total = minutes(t.mi), m = Math.round(total * e);
+  let near = t.via[0], nd = 1e9; for (const c of t.via) { const [x, y] = map.cities[c]; const d = Math.hypot(x - cx, y - cy); if (d < nd) { nd = d; near = c; } }
+  const nm = NAMES[near] || TRIPS[near]?.name || "Chicago";
+  $("ife-now").innerHTML = e >= 1 ? `Arrived <b>${t.name}, ${clock(total)}</b>` : `Now <b>near ${nm}, ${clock(m)}</b>`;
+  $("ife-go").innerHTML = `<b>${Math.round(t.mi * (1 - e))} mi</b> to go`;
+}
+let raf = 0, visible = true;
+function loop(now) { draw(now); if (!reduce && visible) raf = requestAnimationFrame(loop); }
+fetch("map.json").then((r) => r.json()).then((m) => {
+  map = m; pts = m.dots.map(([x, y]) => ({ x, y, route: -1 }));
+  resize(); buildRoute(); raf = requestAnimationFrame(loop);
+  addEventListener("resize", () => { resize(); if (reduce) draw(performance.now()); });
+  new IntersectionObserver(([en]) => { visible = en.isIntersecting; if (visible && !reduce) { cancelAnimationFrame(raf); raf = requestAnimationFrame(loop); } }).observe(cv);
+});
+buildButtons(); select("nashville");
+</script>
+</body>
+</html>
